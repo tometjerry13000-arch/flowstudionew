@@ -820,7 +820,6 @@ function escapeHtml(s) {
 
 // ══════════════════════════════════════════════════════════════════
 // NORMALISATION IMAGE — respecte les contraintes Agnes (256-5760 px)
-// Redimensionne sans déformer, garde le ratio, applique un padding noir
 // ══════════════════════════════════════════════════════════════════
 function normalizeImageForApi(dataUri) {
     return new Promise((resolve) => {
@@ -1315,7 +1314,9 @@ async function apiFetch(url, opts = {}) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-// CREATE VIDEO TASK
+// CREATE VIDEO TASK — MODE ADAPTATIF CORRIGÉ
+// - Avec image → mode: 'keyframe' + first_frame
+// - Sans image → mode: 'text' (obligatoire)
 // ══════════════════════════════════════════════════════════════════
 async function createVideoTask(prompt, imageDataUri = null) {
     let firstFrameUrl = null;
@@ -1336,7 +1337,6 @@ async function createVideoTask(prompt, imageDataUri = null) {
     const body = {
         model: VIDEO_MODEL,
         prompt: prompt,
-        mode: 'keyframe',
         seconds: String(state.duration),
         size: '720P',
         aspect_ratio: state.format === 'portrait' ? '9:16' :
@@ -1344,8 +1344,14 @@ async function createVideoTask(prompt, imageDataUri = null) {
                       state.format === 'cinema' ? '21:9' : '1:1'
     };
 
+    // ═══ MODE ADAPTATIF — TOUJOURS défini ═══
     if (firstFrameUrl) {
+        // Avec image → keyframe
+        body.mode = 'keyframe';
         body.first_frame = firstFrameUrl;
+    } else {
+        // Sans image → text (obligatoire selon Agnes)
+        body.mode = 'text';
     }
 
     log('Body envoyé: ' + JSON.stringify({
@@ -1809,7 +1815,7 @@ $('generate-btn').addEventListener('click', async () => {
         }
     });
 
-    log('Flow Studio prêt — Normalisation images + ImgBB + Agnes 2.5 Flash');
+    log('Flow Studio prêt — Mode adaptatif (text/keyframe) + ImgBB');
 })();
 </script>
 
